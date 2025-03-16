@@ -19,9 +19,9 @@ pub trait SendEmail {
 }
 
 pub struct EmailDTO {
-    pub client_address: String,
     pub from: String,
     pub to: String,
+    pub subject: String,
     pub data: String,
 }
 
@@ -57,14 +57,15 @@ impl SendEmail for SimpleSendEmail {
     fn data(&mut self) {
         let from = self.email.from.clone();
         let to = self.email.to.clone();
+        let subject = self.email.subject.clone();
         let data = self.email.data.clone();
         let email_body = format!(
             "From: {}\r\n\
             To: {}\r\n\
-            Subject: Test Email\r\n\
+            Subject: {}\r\n\
             \r\n\
             {}\r\n\
-            .\r\n", from, to, data);
+            .\r\n", from, to, subject, data);
         self.user_agent.data(email_body);
     }
     fn quit(&mut self) {

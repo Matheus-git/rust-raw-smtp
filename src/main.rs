@@ -15,9 +15,9 @@ fn main() {
             buffer: [0;512]
         }),
         EmailDTO {
-            client_address: email_input.client_address,
             from: email_input.from,
             to: email_input.to,
+            subject: email_input.subject,
             data: email_input.data,
         }
     );

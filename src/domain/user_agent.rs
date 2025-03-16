@@ -73,13 +73,7 @@ impl UserAgent for SimpleUserAgent {
         stream.read(&mut self.buffer)
             .expect("Failed to read server response after DATA command");
         println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
-    
-        let email_body = "From: sender@example.com\r\n\
-                          To: recipient@example.com\r\n\
-                          Subject: Test Email\r\n\
-                          \r\n\
-                          This is a test email sent via raw SMTP with Rust.\r\n\
-                          .\r\n";
+
         stream.write_all(data.as_bytes())
             .expect("Failed to send email body");
     
