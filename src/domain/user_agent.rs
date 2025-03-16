@@ -1,51 +1,102 @@
-use std::io::{self, Write, Read};
+use std::io::{Write, Read};
 use std::net::TcpStream;
 
-fn send_email() -> io::Result<()> {
-    // Conectar ao servidor SMTP (MailHog) na porta 1025
-    let mut stream = TcpStream::connect("127.0.0.1:1025")?;
-    println!("Conectado ao servidor SMTP!");
+pub trait UserAgent {
+    fn conn(&mut self);
+    fn hello(&mut self);
+    fn from(&mut self, from: String);
+    fn to(&mut self, to: String);
+    fn data(&mut self, data: String);
+    fn quit(&mut self);
+}
 
-    // Ler a resposta inicial do servidor
-    let mut buffer = [0; 512];
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+pub struct SimpleUserAgent {
+    pub stream: Option<TcpStream>,
+    pub buffer: [u8; 512]
+}
 
-    // Enviar comando EHLO (identificação do cliente)
-    stream.write_all(b"EHLO localhost\r\n")?;
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+impl UserAgent for SimpleUserAgent {
+    fn conn(&mut self) {
+        let mut stream = TcpStream::connect("127.0.0.1:1025")
+            .expect("Failed to connect to the SMTP server at 127.0.0.1:1025");
 
-    // Enviar comando MAIL FROM (remetente)
-    stream.write_all(b"MAIL FROM:<remetente@example.com>\r\n")?;
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+        println!("Connected to the SMTP server!");
 
-    // Enviar comando RCPT TO (destinatário)
-    stream.write_all(b"RCPT TO:<destinatario@example.com>\r\n")?;
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+        let mut buffer = [0; 512];
+        stream.read(&mut buffer)
+            .expect("Failed to read response from the SMTP server");
 
-    // Enviar comando DATA (iniciar o corpo do e-mail)
-    stream.write_all(b"DATA\r\n")?;
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+        println!("Server response: {}", String::from_utf8_lossy(&buffer));
 
-    // Enviar o corpo do e-mail
-    let email_body = "From: remetente@example.com\r\n\
-                     To: destinatario@example.com\r\n\
-                     Subject: Teste de E-mail\r\n\
-                     \r\n\
-                     Este é um e-mail de teste enviado via SMTP raw com Rust.\r\n\
-                     .\r\n"; // O ponto final indica o fim do corpo do e-mail
-    stream.write_all(email_body.as_bytes())?;
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+        self.stream = Some(stream);
+    }
 
-    // Enviar comando QUIT (encerrar a conexão)
-    stream.write_all(b"QUIT\r\n")?;
-    stream.read(&mut buffer)?;
-    println!("Resposta do servidor: {}", String::from_utf8_lossy(&buffer));
+    fn hello(&mut self){
+        let stream = self.stream.as_mut().expect("Stream is not initialized. Call `conn` first.");
 
-    Ok(())
+        stream.write_all(b"EHLO localhost\r\n")
+        .expect("Failed to send EHLO command to the SMTP server");
+    
+        stream.read(&mut self.buffer)
+        .expect("Failed to read response from the SMTP server");
+        println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
+    }
+
+    fn from(&mut self, from: String) {
+        let stream = self.stream.as_mut().expect("Stream is not initialized. Call `conn` first.");
+
+        let command = format!("MAIL FROM:<{}>\r\n", from);
+        stream.write_all(command.as_bytes())
+            .expect("Failed to send FROM command to the SMTP server");
+        stream.read(&mut self.buffer)
+            .expect("Failed to read response from the SMTP server");
+        println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
+    }
+
+    fn to(&mut self, to: String) {
+        let stream = self.stream.as_mut().expect("Stream is not initialized. Call `conn` first.");
+
+        let command = format!("RCPT TO:<{}>\r\n", to);
+        stream.write_all(command.as_bytes())
+            .expect("Failed to send FROM command to the RCPT server");
+        stream.read(&mut self.buffer)
+            .expect("Failed to read response from the SMTP server");
+        println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
+    }
+
+    fn data(&mut self, data: String) {
+        let stream = self.stream.as_mut().expect("Stream is not initialized. Call `conn` first.");
+
+        stream.write_all(b"DATA\r\n")
+            .expect("Failed to send DATA command to the SMTP server");
+    
+        stream.read(&mut self.buffer)
+            .expect("Failed to read server response after DATA command");
+        println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
+    
+        let email_body = "From: sender@example.com\r\n\
+                          To: recipient@example.com\r\n\
+                          Subject: Test Email\r\n\
+                          \r\n\
+                          This is a test email sent via raw SMTP with Rust.\r\n\
+                          .\r\n";
+        stream.write_all(data.as_bytes())
+            .expect("Failed to send email body");
+    
+        stream.read(&mut self.buffer)
+            .expect("Failed to read server response after sending email body");
+        println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
+    }
+    
+    fn quit(&mut self) {
+        let stream = self.stream.as_mut().expect("Stream is not initialized. Call `conn` first.");
+
+        stream.write_all(b"QUIT\r\n")
+            .expect("Failed to send QUIT command to the SMTP server");
+    
+        stream.read(&mut self.buffer)
+            .expect("Failed to read server response after QUIT command");
+    
+        println!("Server response: {}", String::from_utf8_lossy(&self.buffer));
+    }    
 }
