@@ -23,13 +23,13 @@ impl EmailInput {
             &format!("Enter the recipient's address (default: {}): ", default_to),
             default_to,
         );
-        let data = read_input(
-            &format!("Enter the email body (default: {}): ", default_data),
-            default_data,
-        );
         let subject = read_input(
             &format!("Enter the subject (default: {}): ", default_subject),
             default_subject,
+        );
+        let data = read_input(
+            &format!("Enter the email body (default: {}): ", default_data),
+            default_data,
         );
 
         EmailInput {

@@ -1,4 +1,4 @@
-use crate::domain::user_agent::UserAgent;
+use crate::domain::user_agent::user_agent::UserAgent;
 
 pub trait SendEmail {
     fn send(&mut self) {

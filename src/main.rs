@@ -5,22 +5,21 @@ mod use_case;
 use use_case::send_email::{EmailDTO, SimpleSendEmail, SendEmail};
 
 mod domain;
-use domain::user_agent::SimpleUserAgent;
+use domain::user_agent::user_agent_repository::UserAgentRepository;
 
 fn main() {
     let email_input = EmailInput::new();  
-    let mut send_email = SimpleSendEmail::new(
-        Box::new(SimpleUserAgent {
-            stream: None,
-            buffer: [0;512]
-        }),
-        EmailDTO {
-            from: email_input.from,
-            to: email_input.to,
-            subject: email_input.subject,
-            data: email_input.data,
-        }
-    );
-    send_email.send();
-}
+    let email_dto = EmailDTO {
+        from: email_input.from,
+        to: email_input.to,
+        subject: email_input.subject,
+        data: email_input.data,
+    };
+    
+    let user_agent = UserAgentRepository::create_simple_user_agent();
 
+    let mut send_email = SimpleSendEmail::new(user_agent, email_dto);
+    send_email.send();
+
+    println!("\nEmail sent successfully!\n")
+}
