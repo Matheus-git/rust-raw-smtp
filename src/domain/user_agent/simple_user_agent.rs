@@ -1,5 +1,8 @@
 use std::io::{Write, Read};
 use std::net::TcpStream;
+use dotenv::dotenv;
+use std::env;
+
 use super::user_agent::UserAgent;
 
 pub struct SimpleUserAgent {
@@ -9,8 +12,12 @@ pub struct SimpleUserAgent {
 
 impl UserAgent for SimpleUserAgent {
     fn conn(&mut self) {
-        let mut stream = TcpStream::connect("127.0.0.1:1025")
-            .expect("Failed to connect to the SMTP server at 127.0.0.1:1025");
+        dotenv().ok();
+
+        let smtp_server_url = env::var("SMTP_SERVER_URL").unwrap_or_else(|_| "127.0.0.1:1025".to_string());
+
+        let mut stream = TcpStream::connect(&smtp_server_url)
+            .expect(format!("Failed to connect to the SMTP server at {}", &smtp_server_url).as_str());
 
         let mut buffer = [0; 512];
         stream.read(&mut buffer)
@@ -22,7 +29,11 @@ impl UserAgent for SimpleUserAgent {
     fn hello(&mut self){
         let stream = self.stream.as_mut().expect("Stream is not initialized. Call `conn` first.");
 
-        stream.write_all(b"EHLO localhost\r\n")
+        let hello_identifier: String = env::var("HELLO_IDENTIFIER").unwrap_or_else(|_| "localhost".to_string());
+
+        let command = format!("EHLO {}\r\n", hello_identifier);
+
+        stream.write_all(command.as_bytes())
         .expect("Failed to send EHLO command to the SMTP server");
     
         stream.read(&mut self.buffer)
